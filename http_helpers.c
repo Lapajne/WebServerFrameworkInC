@@ -60,8 +60,74 @@ char* get_template(char* template_name) {
     }
 
     fread(buffer, 1, size, file);
-    buffer[size] = '\0';  // Null-terminate
+    buffer[size] = '\0';
     fclose(file);
 
     return buffer;
+}
+
+
+QueryParams parse_params(const char* data, int* param_count_out) {
+    QueryParams* params = malloc(sizeof(Param) * MAX_PARAMS);  // MAX_PARAMS is a constant you define
+    int count = 0;
+
+    const char* pos = data;
+    while (*pos && count < MAX_PARAMS) {
+        // Extract key
+        const char* key_start = pos;
+        const char* eq = strchr(pos, '=');
+        if (!eq) break;
+
+        const char* val_start = eq + 1;
+        const char* amp = strchr(val_start, '&');
+
+        int key_len = (int)(eq - key_start);
+        int val_len = amp ? (int)(amp - val_start) : (int)strlen(val_start);
+
+        params[count].key = strndup(key_start, key_len);
+        params[count].value = strndup(val_start, val_len);
+        count++;
+
+        pos = amp ? amp + 1 : NULL;
+        if (!pos) break;
+    }
+
+    if (param_count_out) {
+        *param_count_out = count;
+    }
+
+    return params;
+}
+
+
+    QueryParams result = {0};
+    if (!query || strlen(query) == 0) return result;
+
+    int count = 1;
+    for (const char* p = query; *p; p++) {
+        if (*p == '&') count++;
+    }
+
+    result.params = malloc(sizeof(QueryParam) * count);
+    result.count = 0;
+
+    char* query_dup = strdup(query);
+    char* token = strtok(query_dup, "&");
+
+    while (token) {
+        char* equal_sign = strchr(token, '=');
+        if (equal_sign) {
+            *equal_sign = '\0';
+            char* key = token;
+            char* value = equal_sign + 1;
+
+            result.params[result.count].key = strdup(key);
+            result.params[result.count].value = strdup(value);
+            result.count++;
+        }
+        token = strtok(NULL, "&");
+    }
+
+    free(query_dup);
+    return result;
 }

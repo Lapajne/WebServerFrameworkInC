@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "http_helpers.h"
 #include "web_server.h"
 
 #pragma comment(lib, "Ws2_32.lib")  // Link with Winsock library
@@ -153,7 +154,11 @@ bool run_http_server(SOCKET serverSocket, Route* routes) {
         char method[8], path[256], protocol[16];
         int parsed = sscanf(requestBuffer, "%7s %255s %15s", method, path, protocol);
 
+        Param* params = NULL;
+        int param_count = 0;
+
         if (parsed == 3) {
+
             // Check for illegal path traversal      
             if (strstr(path, "..")) {
                 printf("Illegal path traversal attempt: %s\n", path);
@@ -164,33 +169,48 @@ bool run_http_server(SOCKET serverSocket, Route* routes) {
             }
 
             if (strcmp(method, "GET") == 0) {
-                RouteHandler handler = find_handler(path, routes);
-
-                if (handler) {
-                    char* html = handler();  // Call the handler
-                    char* response = create_response(html);
-                    free(html);
-                    if (response) {
-                        int bytesSent = send(clientSocket, response, (int)strlen(response), 0);
-                        free(response);
-                        if (bytesSent == SOCKET_ERROR) {
-                            printf("Send failed. Error: %d\n", WSAGetLastError());
-                        } else {
-                            printf("Sent %d bytes.\n", bytesSent);
-                        }
-                    } else {
-                        printf("Failed to create response.\n");
-                    }
-                } else {
-                    printf("Unknown endpoint: %s\n", path);
-                    send(clientSocket, not_found, (int)strlen(not_found), 0);
+                char* query_start = strchr(path, '?');
+                if (query_start) {
+                    *query_start = '\0';
+                    query_start++;
+                    params = parse_params(query_start, &param_count);
+                }
+            } else if (strcmp(method, "POST") == 0) {
+                char* body = strstr(requestBuffer, "\r\n\r\n");
+                if (body) {
+                    body += 4;
+                    params = parse_params(body, &param_count);
                 }
             } else {
                 printf("Unsupported method: %s\n", method);
             }
+            
+            RouteHandler handler = find_handler(path, routes);
+
+            if (handler) {
+                char* html = handler(params, param_count);
+                char* response = create_response(html);
+                free(html);
+                if (response) {
+                    int bytesSent = send(clientSocket, response, (int)strlen(response), 0);
+                    free(response);
+                    if (bytesSent == SOCKET_ERROR) {
+                        printf("Send failed. Error: %d\n", WSAGetLastError());
+                    } else {
+                        printf("Sent %d bytes.\n", bytesSent);
+                    }
+                } else {
+                    printf("Failed to create response.\n");
+                }
+            } else {
+                printf("Unknown endpoint: %s\n", path);
+                send(clientSocket, not_found, (int)strlen(not_found), 0);
+            }
         } else {
             printf("Failed to parse the request.\n");
         }
+
+        if (params) free(params);
         
         shutdown(clientSocket, SD_SEND);  // Proper graceful close
         closesocket(clientSocket);
