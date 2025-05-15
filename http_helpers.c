@@ -10,8 +10,26 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "http_helpers.h"
+
+
+#ifndef _MSC_VER
+#else
+// Windows/MSVC does not have strndup by default
+char* strndup(const char* s, size_t n) {
+    char* result;
+    size_t len = strlen(s);
+    if (len > n)
+        len = n;
+    result = (char*)malloc(len + 1);
+    if (!result) return NULL;
+    memcpy(result, s, len);
+    result[len] = '\0';
+    return result;
+}
+#endif
 
 
 char* create_response(const char* html) {
@@ -90,7 +108,7 @@ Param* parse_params(const char* data, int* param_count_out) {
      * @return An array of Param structs containing the parameters as key-value pairs.
     */
     *param_count_out = 0;        
-    
+
     if (!data) return NULL;
 
     Param* params = malloc(sizeof(Param) * MAX_PARAMS);  // MAX_PARAMS is a constant you define
