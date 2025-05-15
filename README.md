@@ -7,6 +7,7 @@ The repo also contains a web application that uses the framework as an example o
 ## How to use the web server framework
 
 Implement an array of endpoints and their corresponding function calls like this:
+
     Route routes[] = {
         { "/", handle_index },
         { "/about", handle_about },
@@ -15,4 +16,5 @@ Implement an array of endpoints and their corresponding function calls like this
     };
 
 Then call:
-start_server(routes)
+
+    start_server(routes)
