@@ -22,6 +22,13 @@
 
 
 RouteHandler find_handler(const char* path, Route* routes) {
+    /**
+     * @brief Find the appropriate route handler for a given path.
+     * 
+     * @param path The request path.
+     * @param routes The array of defined routes.
+     * @return The corresponding route handler function, or NULL if not found.
+     */
     for (int i = 0; routes[i].path != NULL; ++i) {
         if (strcmp(path, routes[i].path) == 0) {
             return routes[i].handler;
@@ -32,6 +39,12 @@ RouteHandler find_handler(const char* path, Route* routes) {
 
 
 bool initialize_socket(SOCKET *serverSocket) {
+    /**
+     * @brief Initialize the Winsock library and create a listening socket.
+     * 
+     * @param serverSocket Pointer to the socket variable to be initialized.
+     * @return true if successful, false otherwise.
+     */
     WSADATA wsaData;
     struct sockaddr_in serverAddr;
 
@@ -70,60 +83,14 @@ bool initialize_socket(SOCKET *serverSocket) {
 }
 
 
-char* get_template(char* template_name) {
-    char filepath[512];
-    snprintf(filepath, sizeof(filepath), "templates/%s", template_name);
-
-    FILE* file = fopen(filepath, "rb");
-    if (!file) {
-        printf("Could not open file: %s\n", filepath);
-        return NULL;
-    }
-
-    fseek(file, 0, SEEK_END);
-    long size = ftell(file);
-    rewind(file);
-
-    char* buffer = malloc(size + 1);  // +1 for null terminator
-    if (!buffer) {
-        printf("Memory allocation failed for file: %s\n", filepath);
-        fclose(file);
-        return NULL;
-    }
-
-    fread(buffer, 1, size, file);
-    buffer[size] = '\0';  // Null-terminate
-    fclose(file);
-
-    return buffer;
-}
-
-
-char* create_response(const char* html) {
-    const char* header_template =
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: %d\r\n"
-        "\r\n";
-
-    int content_length = (int)strlen(html);
-    int header_size = snprintf(NULL, 0, header_template, content_length);
-    if (header_size < 0) return NULL;
-
-    // Allocate space for header + body
-    char* response = malloc(header_size + content_length + 1);  // +1 for '\0'
-    if (!response) return NULL;
-
-    // Write the header and append the HTML body
-    sprintf(response, header_template, content_length);
-    memcpy(response + header_size, html, content_length);
-    response[header_size + content_length] = '\0';
-
-    return response;
-}
-
-
 bool run_http_server(SOCKET serverSocket, Route* routes) {
+    /**
+     * @brief Main loop to accept and handle incoming HTTP requests.
+     * 
+     * @param serverSocket The listening socket.
+     * @param routes The array of defined routes.
+     */
+
     SOCKET clientSocket;
     char requestBuffer[512];  // Buffer to store the HTTP request
     const char* not_found =
@@ -219,6 +186,12 @@ bool run_http_server(SOCKET serverSocket, Route* routes) {
 
 
 int start_server(Route* routes) {
+    /**
+     * @brief Start the HTTP server and initialize the socket.
+     * 
+     * @param routes The array of defined routes.
+     * @return 0 on success, 1 on failure.
+     */
     SOCKET serverSocket;
     if(initialize_socket(&serverSocket)) {
         run_http_server(serverSocket, routes);

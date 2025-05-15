@@ -2,7 +2,7 @@
  * @file http_helpers.c
  * @brief Helper functions for HTTP server.
  *
- * This file implements a number of utility functions to assist in handling HTTP
+ * This file implements a number of utility functions to assist in handling HTTP requests
  *
  * @author Alexander Lapajne
  * @date 2025-05-12
@@ -15,6 +15,13 @@
 
 
 char* create_response(const char* html) {
+    /**
+     * Create an HTTP response with the given HTML content.
+     * 
+     * @param html The HTML content to include in the response body.
+     * @return A dynamically allocated string containing the full HTTP response.
+     */
+
     const char* header_template =
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/html\r\n"
@@ -39,6 +46,13 @@ char* create_response(const char* html) {
 
 
 char* get_template(char* template_name) {
+    /**
+     * @brief Load a template file from the templates director and return the contents.
+     * 
+     * @param template_name The name of the template file to load (without path).
+     * @return A dynamically allocated string containing the file contents, or NULL on failure.
+    */
+
     char filepath[512];
     snprintf(filepath, sizeof(filepath), "templates/%s", template_name);
 
@@ -67,8 +81,19 @@ char* get_template(char* template_name) {
 }
 
 
-QueryParams parse_params(const char* data, int* param_count_out) {
-    QueryParams* params = malloc(sizeof(Param) * MAX_PARAMS);  // MAX_PARAMS is a constant you define
+Param* parse_params(const char* data, int* param_count_out) {
+    /**
+     * @brief Parse URL-encoded parameters from a query string (GET request) or POST body
+     * 
+     * @param data The input string containing the parameters.
+     * @param param_count_out Pointer to an integer to store the number of parsed parameters.
+     * @return An array of Param structs containing the parameters as key-value pairs.
+    */
+    *param_count_out = 0;        
+    
+    if (!data) return NULL;
+
+    Param* params = malloc(sizeof(Param) * MAX_PARAMS);  // MAX_PARAMS is a constant you define
     int count = 0;
 
     const char* pos = data;
@@ -78,6 +103,7 @@ QueryParams parse_params(const char* data, int* param_count_out) {
         const char* eq = strchr(pos, '=');
         if (!eq) break;
 
+        // Extract value
         const char* val_start = eq + 1;
         const char* amp = strchr(val_start, '&');
 
@@ -97,37 +123,4 @@ QueryParams parse_params(const char* data, int* param_count_out) {
     }
 
     return params;
-}
-
-
-    QueryParams result = {0};
-    if (!query || strlen(query) == 0) return result;
-
-    int count = 1;
-    for (const char* p = query; *p; p++) {
-        if (*p == '&') count++;
-    }
-
-    result.params = malloc(sizeof(QueryParam) * count);
-    result.count = 0;
-
-    char* query_dup = strdup(query);
-    char* token = strtok(query_dup, "&");
-
-    while (token) {
-        char* equal_sign = strchr(token, '=');
-        if (equal_sign) {
-            *equal_sign = '\0';
-            char* key = token;
-            char* value = equal_sign + 1;
-
-            result.params[result.count].key = strdup(key);
-            result.params[result.count].value = strdup(value);
-            result.count++;
-        }
-        token = strtok(NULL, "&");
-    }
-
-    free(query_dup);
-    return result;
 }

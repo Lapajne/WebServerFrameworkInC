@@ -1,3 +1,12 @@
+/**
+ * @file web_server_windows.c
+ * @brief This file is an example implementation of an app using the web framework.
+ *
+ * @author Alexander Lapajne
+ * @date 2025-05-12
+ */
+
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
